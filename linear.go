@@ -1,3 +1,5 @@
+// Package linear is where I implement linear algebra operations for
+// deep learning (as in me, the human, learning deeply).
 package linear
 
 import (
@@ -5,14 +7,22 @@ import (
 	"math"
 )
 
-func Identity(dims int) Matrix {
-	I := NewArrayMatrix(dims, dims)
-	for d := 0; d < dims; d++ {
+// TODO: each time we want a new matrix we assume that the user wants
+// an arrayMatrix, but we should really have the user determine the
+// implementation.
+
+// Identity makes a new square dimxdim Matrix with ones on the
+// diagonal.
+func Identity(dim int) Matrix {
+	I := NewArrayMatrix(dim, dim)
+	for d := 0; d < dim; d++ {
 		I.Set(d, d, 1)
 	}
 	return I
 }
 
+// Copy makes a new Matrix with the same shape and entries as the
+// given Matrix.
 func Copy(A Matrix) Matrix {
 	ins, outs := A.Shape()
 	B := NewArrayMatrix(ins, outs)
@@ -24,7 +34,7 @@ func Copy(A Matrix) Matrix {
 	return B
 }
 
-// Dual returns the transpose of A.
+// Dual produces the transpose of A.
 func Dual(A Matrix) Matrix {
 	// TODO: rather than returning new storage, we could have a wrapper
 	// around the existing array that reads backwards. But the user
@@ -64,10 +74,10 @@ func ApplyToMatrix(A, X Matrix) Matrix {
 	return Compose(X, A)
 }
 
-// AppleToVector returns A*x.
+// ApplyToVector returns A*x.
 func ApplyToVector(A Matrix, x Vector) Vector {
 	ins, outs := A.Shape()
-	if x.Dimensions() != ins {
+	if x.Dimension() != ins {
 		panic(fmt.Errorf("this matrix with %d inputs cannot be applied vector with %d dimensions", ins, outs))
 	}
 	v := NewArrayVector(outs)
@@ -81,8 +91,9 @@ func ApplyToVector(A Matrix, x Vector) Vector {
 	return v
 }
 
-func Magnitude(v Vector) float64 {
-	dims := v.Dimensions()
+// L2Norm returns the euclidean length of the vector.
+func L2Norm(v Vector) float64 {
+	dims := v.Dimension()
 	sumOfSquares := 0.0
 	for d := 0; d < dims; d++ {
 		a := v.Get(d)
@@ -91,9 +102,11 @@ func Magnitude(v Vector) float64 {
 	return math.Sqrt(sumOfSquares)
 }
 
+// Normalize divides out the L2Norm, yielding a vector in the same
+// direction with unit length.
 func Normalize(v Vector) Vector {
-	mag := Magnitude(v)
-	dims := v.Dimensions()
+	mag := L2Norm(v)
+	dims := v.Dimension()
 	u := NewArrayVector(dims)
 	for d := 0; d < dims; d++ {
 		u.Set(d, v.Get(d)/mag)
@@ -107,8 +120,8 @@ func SolveUpperTriangular(A Matrix, b Vector) Vector {
 	if outs < ins {
 		panic(fmt.Errorf("can't solve upper triangular with less outs (%d) than ins (%d)", outs, ins))
 	}
-	if b.Dimensions() != outs {
-		panic(fmt.Errorf("expected b to have same dims (%d) as A has outs (%d)", b.Dimensions(), outs))
+	if b.Dimension() != outs {
+		panic(fmt.Errorf("expected b to have same dims (%d) as A has outs (%d)", b.Dimension(), outs))
 	}
 	for i := 0; i < ins; i++ {
 		for o := i + 1; o < outs; o++ {
@@ -136,9 +149,9 @@ func SolveUpperTriangular(A Matrix, b Vector) Vector {
 	return x
 }
 
-// Householder returns the householder reflection for the [d:, d:]
-// submatrix of A which when applied to A zeros subdiagonal elements
-// of column d.
+// Householder returns the householder reflection operator for the
+// [d:, d:] submatrix of A (extended back to the shape of A) which
+// when applied to A zeros subdiagonal elements of column d.
 func Householder(A Matrix, d int) Matrix {
 	ins, outs := A.Shape()
 	if d >= ins-1 {
@@ -156,7 +169,7 @@ func Householder(A Matrix, d int) Matrix {
 	for k := 0; k < xdims; k++ {
 		x.Set(k, A.Get(d, d+k))
 	}
-	xmag := Magnitude(x)
+	xmag := L2Norm(x)
 
 	// TODO: it's not clear what sign should be used, need to do more
 	// research.
@@ -184,6 +197,12 @@ func Householder(A Matrix, d int) Matrix {
 	return Q
 }
 
+// DecomposeQR decomposes A into Q*R by transforming it into an upper
+// triangular matrix R. Applying the opposite of the transformation,
+// which is Q, to R gets you back to A. If you are trying to solve Ax
+// = b, this gives QRx = b, which yields Rx = Dual(Q)*b because Q is
+// orthogonal. Since R is upper triangular, this last equation is
+// solvable by SolveUpperTriangular.
 func DecomposeQR(A Matrix) (Q, R Matrix) {
 	ins, outs := A.Shape()
 	Q = Identity(outs)

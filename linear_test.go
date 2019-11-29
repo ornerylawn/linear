@@ -166,17 +166,17 @@ func TestApplyToVector(t *testing.T) {
 
 	b := ApplyToVector(A, x)
 
-	ExpectInt(2, b.Dimensions(), t)
+	ExpectInt(2, b.Dimension(), t)
 	ExpectFloat(5, b.Get(0), t)
 	ExpectFloat(11, b.Get(1), t)
 }
 
-func TestMagnitude(t *testing.T) {
+func TestL2Norm(t *testing.T) {
 	v := NewArrayVector(2)
 	v.Set(0, 3)
 	v.Set(1, 4)
 
-	m := Magnitude(v)
+	m := L2Norm(v)
 
 	ExpectFloat(5, m, t)
 }
@@ -188,7 +188,7 @@ func TestNormalize(t *testing.T) {
 
 	u := Normalize(v)
 
-	ExpectInt(2, u.Dimensions(), t)
+	ExpectInt(2, u.Dimension(), t)
 	ExpectFloat(3/5.0, u.Get(0), t)
 	ExpectFloat(4/5.0, u.Get(1), t)
 }
@@ -212,7 +212,7 @@ func TestSolveUpperTriangular(t *testing.T) {
 
 	x := SolveUpperTriangular(A, b)
 
-	ExpectInt(3, x.Dimensions(), t)
+	ExpectInt(3, x.Dimension(), t)
 	ExpectFloat(-1.0/4.0, x.Get(0), t)
 	ExpectFloat(-1.0/8.0, x.Get(1), t)
 	ExpectFloat(1.0/2.0, x.Get(2), t)
