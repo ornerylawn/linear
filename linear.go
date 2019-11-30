@@ -164,31 +164,29 @@ func Householder(A Matrix, d int) Matrix {
 	// v = normalize(u)
 	// Q = I - 2 * v * dual(v).
 
-	xdims := outs - d
-	x := NewArrayVector(xdims)
-	for k := 0; k < xdims; k++ {
+	xdim := outs - d
+	x := NewArrayVector(xdim)
+	for k := 0; k < xdim; k++ {
 		x.Set(k, A.Get(d, d+k))
 	}
 	xmag := L2Norm(x)
-
-	// TODO: it's not clear what sign should be used, need to do more
-	// research.
-	if x.Get(0) >= 0.0 {
-		xmag = -xmag
+	x0sign := 1.0
+	if x.Get(0) < 0.0 {
+		x0sign = -1.0
 	}
 
-	u := NewArrayVector(xdims)
-	u.Set(0, x.Get(0)-xmag)
-	for k := 1; k < xdims; k++ {
+	u := NewArrayVector(xdim)
+	u.Set(0, x.Get(0)+x0sign*xmag)
+	for k := 1; k < xdim; k++ {
 		u.Set(k, x.Get(k))
 	}
 
 	v := Normalize(u)
 	Q := Identity(outs)
 
-	for k := 0; k < xdims; k++ {
+	for k := 0; k < xdim; k++ {
 		o := d + k
-		for j := 0; j < xdims; j++ {
+		for j := 0; j < xdim; j++ {
 			i := d + j
 			Q.Set(i, o, Q.Get(i, o)-2*v.Get(k)*v.Get(j))
 		}
