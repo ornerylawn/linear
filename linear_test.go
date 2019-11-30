@@ -345,3 +345,22 @@ func TestDecomposeQR(t *testing.T) {
 		}
 	}
 }
+
+func TestLinearGaussianMaximumLikelihoodEstimate(t *testing.T) {
+	// TODO: pick a good example.
+	X := NewArrayMatrix(2, 2)
+	X.Set(0, 0, 1)
+	X.Set(1, 0, 0)
+	X.Set(0, 1, 1)
+	X.Set(1, 1, 2)
+
+	y := NewArrayVector(2)
+	y.Set(0, 6)
+	y.Set(1, 0)
+
+	theta_hat := LinearGaussianMaximumLikelihoodEstimate(X, y)
+
+	ExpectInt(2, theta_hat.Dimension(), t)
+
+	// TODO: what values to expect?
+}
