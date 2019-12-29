@@ -64,6 +64,7 @@ func (s *sliceMatrix) checkBounds(in, out int) {
 	}
 }
 
+// TODO: do we need a struct?
 type dualMatrix struct {
 	A Matrix
 }
@@ -133,8 +134,7 @@ func IdentityInto(dst Matrix) {
 	}
 }
 
-// Identity makes a new square dimxdim Matrix with ones on the
-// diagonal.
+// Identity makes a new square Matrix with ones on the diagonal.
 func Identity(dim int) Matrix {
 	I := NewArrayMatrix(dim, dim)
 	// Could use IdentityInto(I) but we only need to change the
@@ -145,7 +145,7 @@ func Identity(dim int) Matrix {
 	return I
 }
 
-// ComposeInto writes B*A into dst.
+// ComposeInto writes "A then B" (aka B*A) into dst.
 func ComposeInto(A, B, dst Matrix) {
 	aIns, aOuts := A.Shape()
 	bIns, bOuts := B.Shape()
@@ -163,7 +163,7 @@ func ComposeInto(A, B, dst Matrix) {
 	}
 }
 
-// Compose returns B*A.
+// Compose returns "A then B" (aka B*A).
 func Compose(A, B Matrix) Matrix {
 	aIns, _ := A.Shape()
 	_, bOuts := B.Shape()

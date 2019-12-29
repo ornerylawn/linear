@@ -182,7 +182,7 @@ func TestDecomposeQR(t *testing.T) {
 	}
 }
 
-func TestLinearRegression(t *testing.T) {
+func TestOrdinaryLeastSquares(t *testing.T) {
 	X := NewArrayMatrix(2, 2)
 	X.Set(0, 0, 1)
 	X.Set(1, 0, 0)
@@ -193,7 +193,28 @@ func TestLinearRegression(t *testing.T) {
 	y.Set(0, 6)
 	y.Set(1, 0)
 
-	theta_hat := LinearRegression(X, y)
+	theta_hat := OrdinaryLeastSquares(X, y)
+
+	ExpectInt(2, theta_hat.Dimension(), t)
+	ExpectFloat(6, theta_hat.Get(0), t)
+	ExpectFloat(-3, theta_hat.Get(1), t)
+}
+
+func TestOrdinaryLeastSquaresNonSquare(t *testing.T) {
+	X := NewArrayMatrix(2, 3)
+	X.Set(0, 0, 1)
+	X.Set(1, 0, 0)
+	X.Set(0, 1, 1)
+	X.Set(1, 1, 2)
+	X.Set(0, 2, -2)
+	X.Set(1, 2, 1)
+
+	y := NewArrayVector(3)
+	y.Set(0, 6)
+	y.Set(1, 0)
+	y.Set(2, -15)
+
+	theta_hat := OrdinaryLeastSquares(X, y)
 
 	ExpectInt(2, theta_hat.Dimension(), t)
 	ExpectFloat(6, theta_hat.Get(0), t)
