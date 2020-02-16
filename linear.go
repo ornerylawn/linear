@@ -12,26 +12,29 @@ import (
 // it solves A*x = b for the special case that A is upper triangular.
 func FindInputToUpperTriangularInto(A Matrix, b, x Vector) {
 	ins, outs := A.Shape()
-	if outs < ins {
-		panic(fmt.Errorf("can't solve upper triangular with less outs (%d) than ins (%d)", outs, ins))
+	if x.Dimension() != ins {
+		panic(fmt.Errorf("matrix ins (%d) does not match inputs (%d)", ins, x.Dimension()))
 	}
 	if b.Dimension() != outs {
-		panic(fmt.Errorf("expected b to have same dims (%d) as A has outs (%d)", b.Dimension(), outs))
+		panic(fmt.Errorf("matrix outs (%d) does not match outputs (%d)", outs, b.Dimension()))
 	}
-	if x.Dimension() != ins {
-		panic(fmt.Errorf("dimension mismatch %d vs %d", x.Dimension(), ins))
+	if outs < ins {
+		panic(fmt.Errorf("less matix outs (%d) than ins (%d)", outs, ins))
 	}
-	for i := 0; i < ins; i++ {
-		for o := i + 1; o < outs; o++ {
+
+	// Since A is upper triangular we can solve the last row on the
+	// diagonal (the rest are zeros) by simple division, and then use
+	// that to solve the previous row and so on.
+	for o := outs - 1; o >= 0; o-- {
+		for i := 0; i < o && i < ins; i++ {
 			if math.Abs(A.Get(i, o)) > 1e-9 {
 				panic(fmt.Errorf("expected upper triangular but found nonzero (%d, %d is %f)", i, o, A.Get(i, o)))
 			}
 		}
-	}
-	// Since A is upper triangular we can solve the last row on the
-	// diagonal (the rest are zeros) by simple division, and then use
-	// that to solve the previous row and so on.
-	for o := ins - 1; o >= 0; o-- {
+		if o >= ins {
+			continue
+		}
+		// TODO: if we had access to the memory, we could use avx.
 		dot := 0.0
 		for i := o + 1; i < ins; i++ {
 			dot += x.Get(i) * A.Get(i, o)

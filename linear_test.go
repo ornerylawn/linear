@@ -6,6 +6,7 @@ package linear
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -219,4 +220,29 @@ func TestOrdinaryLeastSquaresNonSquare(t *testing.T) {
 	ExpectInt(2, theta_hat.Dimension(), t)
 	ExpectFloat(6, theta_hat.Get(0), t)
 	ExpectFloat(-3, theta_hat.Get(1), t)
+}
+
+func BenchmarkFindInputToUpperTriangularInto(b *testing.B) {
+	ins := 14
+	outs := 506
+	x := NewArrayVector(14)
+	for i := 0; i < ins; i++ {
+		x.Set(i, rand.Float64())
+	}
+
+	A := NewArrayMatrix(ins, outs)
+	for o := 0; o < outs; o++ {
+		for i := 0; i < ins; i++ {
+			if i >= o {
+				A.Set(i, o, rand.Float64())
+			}
+		}
+	}
+
+	y := ApplyToVector(A, x)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		FindInputToUpperTriangularInto(A, y, x)
+	}
 }
