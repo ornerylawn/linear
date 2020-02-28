@@ -33,7 +33,7 @@ func (v arrayVector) Dimension() int           { return len(v) }
 func (v arrayVector) Get(i int) float64        { return v[i] }
 func (v arrayVector) Set(i int, value float64) { v[i] = value }
 
-type sliceColumn struct {
+type columnAsVector struct {
 	A Matrix
 }
 
@@ -44,17 +44,17 @@ func VectorFromColumn(A Matrix) Vector {
 	if ins != 1 {
 		panic(fmt.Errorf("can't make vector from matrix that has %d columns", ins))
 	}
-	return &sliceColumn{A}
+	return &columnAsVector{A}
 }
 
-func (s *sliceColumn) Dimension() int {
+func (s *columnAsVector) Dimension() int {
 	_, outs := s.A.Shape()
 	return outs
 }
-func (s *sliceColumn) Get(d int) float64        { return s.A.Get(0, d) }
-func (s *sliceColumn) Set(d int, value float64) { s.A.Set(0, d, value) }
+func (s *columnAsVector) Get(d int) float64        { return s.A.Get(0, d) }
+func (s *columnAsVector) Set(d int, value float64) { s.A.Set(0, d, value) }
 
-type sliceRow struct {
+type rowAsVector struct {
 	A Matrix
 }
 
@@ -65,15 +65,15 @@ func VectorFromRow(A Matrix) Vector {
 	if outs != 1 {
 		panic(fmt.Errorf("can't make vector from matrix that has %d rows", outs))
 	}
-	return &sliceRow{A}
+	return &rowAsVector{A}
 }
 
-func (s *sliceRow) Dimension() int {
+func (s *rowAsVector) Dimension() int {
 	ins, _ := s.A.Shape()
 	return ins
 }
-func (s *sliceRow) Get(d int) float64        { return s.A.Get(d, 0) }
-func (s *sliceRow) Set(d int, value float64) { s.A.Set(d, 0, value) }
+func (s *rowAsVector) Get(d int) float64        { return s.A.Get(d, 0) }
+func (s *rowAsVector) Set(d int, value float64) { s.A.Set(d, 0, value) }
 
 // BasisVector make a new vector with the given dimension with a 1 in
 // the given index and zeros elsewhere.

@@ -64,7 +64,6 @@ func (s *sliceMatrix) checkBounds(in, out int) {
 	}
 }
 
-// TODO: do we need a struct?
 type dualMatrix struct {
 	A Matrix
 }

@@ -22,7 +22,7 @@ func ExpectInt(expect, got int, t *testing.T) {
 	}
 }
 
-func TestFindInputToUpperTriangular(t *testing.T) {
+func TestFindInputUpperTriangular(t *testing.T) {
 	A := NewArrayMatrix(3, 3)
 	A.Set(0, 0, 1)
 	A.Set(1, 0, 2)
@@ -39,7 +39,7 @@ func TestFindInputToUpperTriangular(t *testing.T) {
 	b.Set(1, 2)
 	b.Set(2, 3)
 
-	x := FindInputToUpperTriangular(A, b)
+	x := FindInputUpperTriangular(A, b)
 
 	ExpectInt(3, x.Dimension(), t)
 	ExpectFloat(-1.0/4.0, x.Get(0), t)
@@ -222,10 +222,10 @@ func TestOrdinaryLeastSquaresNonSquare(t *testing.T) {
 	ExpectFloat(-3, theta_hat.Get(1), t)
 }
 
-func BenchmarkFindInputToUpperTriangularInto(b *testing.B) {
-	ins := 14
-	outs := 506
-	x := NewArrayVector(14)
+func BenchmarkFindInputUpperTriangularInto(b *testing.B) {
+	ins := 512
+	outs := 512
+	x := NewArrayVector(ins)
 	for i := 0; i < ins; i++ {
 		x.Set(i, rand.Float64())
 	}
@@ -243,6 +243,65 @@ func BenchmarkFindInputToUpperTriangularInto(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		FindInputToUpperTriangularInto(A, y, x)
+		FindInputUpperTriangularInto(A, y, x)
+	}
+}
+
+func BenchmarkFindInputUpperTriangular(b *testing.B) {
+	ins := 512
+	outs := 512
+	x := NewArrayVector(ins)
+	for i := 0; i < ins; i++ {
+		x.Set(i, rand.Float64())
+	}
+
+	A := NewArrayMatrix(ins, outs)
+	for o := 0; o < outs; o++ {
+		for i := 0; i < ins; i++ {
+			if i >= o {
+				A.Set(i, o, rand.Float64())
+			}
+		}
+	}
+
+	y := ApplyToVector(A, x)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		FindInputUpperTriangular(A, y)
+	}
+}
+
+func BenchmarkDecomposeQR_Basic(b *testing.B) {
+	ins := 3
+	outs := 10
+	A := NewArrayMatrix(ins, outs)
+
+	for o := 0; o < outs; o++ {
+		for i := 0; i < ins; i++ {
+			A.Set(i, o, rand.Float64())
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		DecomposeQR_Basic(A)
+	}
+}
+
+func BenchmarkDecomposeQR_Slicing(b *testing.B) {
+	ins := 3
+	outs := 10
+	A := NewArrayMatrix(ins, outs)
+
+	for o := 0; o < outs; o++ {
+		for i := 0; i < ins; i++ {
+			A.Set(i, o, rand.Float64())
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		DecomposeQR_Slicing(A)
 	}
 }
