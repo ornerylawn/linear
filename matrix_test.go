@@ -216,7 +216,7 @@ func TestCompose(t *testing.T) {
 	ExpectFloat(9, C.Get(2, 2), t)
 }
 
-func TestApplyToMatrixInto(t *testing.T) {
+func TestApply(t *testing.T) {
 	A := NewArrayMatrix(2, 3)
 	A.Set(0, 0, 2)
 	A.Set(1, 0, 0)
@@ -225,38 +225,7 @@ func TestApplyToMatrixInto(t *testing.T) {
 	A.Set(0, 2, 0)
 	A.Set(1, 2, 3)
 
-	B := NewArrayMatrix(2, 2)
-	ApplyToMatrixInto(Dual(A), A, B)
-
-	ExpectFloat(8, B.Get(0, 0), t)
-	ExpectFloat(0, B.Get(1, 0), t)
-	ExpectFloat(0, B.Get(0, 1), t)
-	ExpectFloat(9, B.Get(1, 1), t)
-
-	C := NewArrayMatrix(3, 3)
-	ApplyToMatrixInto(A, Dual(A), C)
-
-	ExpectFloat(4, C.Get(0, 0), t)
-	ExpectFloat(4, C.Get(1, 0), t)
-	ExpectFloat(0, C.Get(2, 0), t)
-	ExpectFloat(4, C.Get(0, 1), t)
-	ExpectFloat(4, C.Get(1, 1), t)
-	ExpectFloat(0, C.Get(2, 1), t)
-	ExpectFloat(0, C.Get(0, 2), t)
-	ExpectFloat(0, C.Get(1, 2), t)
-	ExpectFloat(9, C.Get(2, 2), t)
-}
-
-func TestApplyToMatrix(t *testing.T) {
-	A := NewArrayMatrix(2, 3)
-	A.Set(0, 0, 2)
-	A.Set(1, 0, 0)
-	A.Set(0, 1, 2)
-	A.Set(1, 1, 0)
-	A.Set(0, 2, 0)
-	A.Set(1, 2, 3)
-
-	B := ApplyToMatrix(Dual(A), A)
+	B := Apply(Dual(A), A)
 
 	bIns, bOuts := B.Shape()
 	ExpectInt(2, bIns, t)
@@ -266,7 +235,7 @@ func TestApplyToMatrix(t *testing.T) {
 	ExpectFloat(0, B.Get(0, 1), t)
 	ExpectFloat(9, B.Get(1, 1), t)
 
-	C := ApplyToMatrix(A, Dual(A))
+	C := Apply(A, Dual(A))
 
 	cIns, cOuts := C.Shape()
 	ExpectInt(3, cIns, t)
@@ -282,24 +251,6 @@ func TestApplyToMatrix(t *testing.T) {
 	ExpectFloat(9, C.Get(2, 2), t)
 }
 
-func TestApplyToVectorInto(t *testing.T) {
-	A := NewArrayMatrix(2, 2)
-	A.Set(0, 0, 1)
-	A.Set(1, 0, 2)
-	A.Set(0, 1, 3)
-	A.Set(1, 1, 4)
-
-	x := NewArrayVector(2)
-	x.Set(0, 1)
-	x.Set(1, 2)
-
-	b := NewArrayVector(2)
-	ApplyToVectorInto(A, x, b)
-
-	ExpectFloat(5, b.Get(0), t)
-	ExpectFloat(11, b.Get(1), t)
-}
-
 func TestApplyToVector(t *testing.T) {
 	A := NewArrayMatrix(2, 2)
 	A.Set(0, 0, 1)
@@ -307,13 +258,63 @@ func TestApplyToVector(t *testing.T) {
 	A.Set(0, 1, 3)
 	A.Set(1, 1, 4)
 
-	x := NewArrayVector(2)
-	x.Set(0, 1)
-	x.Set(1, 2)
+	x := NewArrayMatrix(1, 2)
+	x.Set(0, 0, 1)
+	x.Set(0, 1, 2)
 
-	b := ApplyToVector(A, x)
+	b := Apply(A, x)
 
-	ExpectInt(2, b.Dimension(), t)
-	ExpectFloat(5, b.Get(0), t)
-	ExpectFloat(11, b.Get(1), t)
+	_, dim := b.Shape()
+	ExpectInt(2, dim, t)
+	ExpectFloat(5, b.Get(0, 0), t)
+	ExpectFloat(11, b.Get(0, 1), t)
+}
+
+func TestBasisVector(t *testing.T) {
+	e := BasisVector(5, 3)
+
+	_, dim := e.Shape()
+	ExpectInt(5, dim, t)
+	for i := 0; i < dim; i++ {
+		if i == 3 {
+			ExpectFloat(1, e.Get(0, i), t)
+		} else {
+			ExpectFloat(0, e.Get(0, i), t)
+		}
+	}
+}
+
+func TestL2Norm(t *testing.T) {
+	v := NewArrayMatrix(1, 2)
+	v.Set(0, 0, 3)
+	v.Set(0, 1, 4)
+
+	h := L2Norm(v)
+
+	ExpectFloat(5, h, t)
+}
+
+func TestNormalizeInto(t *testing.T) {
+	v := NewArrayMatrix(1, 2)
+	v.Set(0, 0, 3)
+	v.Set(0, 1, 4)
+
+	u := NewArrayMatrix(1, 2)
+	NormalizeInto(v, u)
+
+	ExpectFloat(3/5., u.Get(0, 0), t)
+	ExpectFloat(4/5., u.Get(0, 1), t)
+}
+
+func TestNormalize(t *testing.T) {
+	v := NewArrayMatrix(1, 2)
+	v.Set(0, 0, 3)
+	v.Set(0, 1, 4)
+
+	Normalize(v)
+
+	_, dim := v.Shape()
+	ExpectInt(2, dim, t)
+	ExpectFloat(3/5., v.Get(0, 0), t)
+	ExpectFloat(4/5., v.Get(0, 1), t)
 }

@@ -1,8 +1,11 @@
 package linear
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
-// Matrix specifies a linear map under an assumed basis.
+// Matrix specifies a linear map under assumed bases.
 type Matrix interface {
 	// Shape returns the number of inputs and outputs of the linear map,
 	// which corresponds to the number of columns and rows of the
@@ -68,7 +71,7 @@ type dualMatrix struct {
 	A Matrix
 }
 
-// Dual reads from a Matrix backwards, producing the Matrix transpose.
+// Dual reads from a Matrix backwards, the transpose.
 func Dual(A Matrix) Matrix {
 	return &dualMatrix{A}
 }
@@ -171,45 +174,128 @@ func Compose(A, B Matrix) Matrix {
 	return dst
 }
 
-// ApplyToMatrixInto writes A*X into dst.
-func ApplyToMatrixInto(A, X, dst Matrix) {
+// ApplyInto writes A*X into dst.
+func ApplyInto(A, X, dst Matrix) {
 	ComposeInto(X, A, dst)
 }
 
-// ApplyToMatrix returns A*X.
-func ApplyToMatrix(A, X Matrix) Matrix {
+// Apply returns A*X.
+func Apply(A, X Matrix) Matrix {
 	xIns, _ := X.Shape()
 	_, aOuts := A.Shape()
 	dst := NewArrayMatrix(xIns, aOuts)
-	ApplyToMatrixInto(A, X, dst)
+	ApplyInto(A, X, dst)
 	return dst
 }
 
-// ApplyToVectorInto write A*x into dst.
-func ApplyToVectorInto(A Matrix, x, dst Vector) {
-	ins, outs := A.Shape()
-	if x.Dimension() != ins {
-		panic(fmt.Errorf("dimension mismatch %d vs %d", ins, x.Dimension()))
+func CheckScalar(f Matrix) {
+	ins, outs := f.Shape()
+	if ins != 1 || outs != 1 {
+		panic(fmt.Errorf("not a scalar shape=(%d, %d)", ins, outs))
 	}
-	if dst.Dimension() != outs {
-		panic(fmt.Errorf("dimension mismatch %d vs %d", outs, dst.Dimension()))
+}
+
+func CheckVector(v Matrix) {
+	ins, outs := v.Shape()
+	if ins != 1 || outs < 0 {
+		panic(fmt.Errorf("not a vector shape=(%d,%d)", ins, outs))
 	}
+}
+
+func CheckCovector(c Matrix) {
+	ins, outs := c.Shape()
+	if outs != 1 || ins < 0 {
+		panic(fmt.Errorf("not a covector shape=(%d,%d)", ins, outs))
+	}
+}
+
+func CheckSameIns(A, B Matrix) {
+	insA, _ := A.Shape()
+	insB, _ := B.Shape()
+	if insA != insB {
+		panic(fmt.Errorf("input dimensions don't match %d vs %d", insA, insB))
+	}
+}
+
+func CheckSameOuts(A, B Matrix) {
+	_, outsA := A.Shape()
+	_, outsB := B.Shape()
+	if outsA != outsB {
+		panic(fmt.Errorf("output dimensions don't match %d vs %d", outsA, outsB))
+	}
+}
+
+func CheckSameShape(A, B Matrix) {
+	insA, outsA := A.Shape()
+	insB, outsB := B.Shape()
+	if insA != insB || outsA != outsB {
+		panic(fmt.Errorf("shape mismatch (%d, %d) vs (%d, %d)", insA, outsA, insB, outsB))
+	}
+}
+
+func CheckComposable(A, B Matrix) {
+	_, outsA := A.Shape()
+	insB, _ := B.Shape()
+	if outsA != insB {
+		panic(fmt.Errorf("not composable (_, %d) vs (%d, _)", outsA, insB))
+	}
+}
+
+func CheckUpperTriangular(A Matrix) {
+}
+
+func CheckNotCloseToZero(x float64) {
+	if math.Abs(x) < 1e-9 {
+		panic(fmt.Errorf("%f is too close to zero", x))
+	}
+}
+
+func DotProduct(v, c Matrix) float64 {
+	CheckVector(v)
+	CheckCovector(c)
+	_, dim := v.Shape()
+	dot := 0.0
+	for d := 0; d < dim; d++ {
+		dot += v.Get(0, d) * c.Get(d, 0)
+	}
+	return dot
+}
+
+// BasisVector make a new vector with the given dimension with a 1 in
+// the given index and zeros elsewhere.
+func BasisVector(dim int, index int) Matrix {
+	e := NewArrayMatrix(1, dim)
+	e.Set(0, index, 1)
+	return e
+}
+
+// L2Norm returns the euclidean length of the vector.
+func L2Norm(v Matrix) float64 {
+	CheckVector(v)
+	_, outs := v.Shape()
+	sumOfSquares := 0.0
 	for o := 0; o < outs; o++ {
-		dot := 0.0
-		for i := 0; i < ins; i++ {
-			dot += A.Get(i, o) * x.Get(i)
-		}
-		dst.Set(o, dot)
+		f := v.Get(0, o)
+		sumOfSquares += f * f
+	}
+	return math.Sqrt(sumOfSquares)
+}
+
+// NormalizeInto writes into dst a vector in the same direction as src
+// but with unit length, by dividing out the L2 norm.
+func NormalizeInto(src, dst Matrix) {
+	CheckVector(src)
+	CheckVector(dst)
+	CheckSameShape(src, dst)
+	mag := L2Norm(src)
+	_, dim := dst.Shape()
+	for d := 0; d < dim; d++ {
+		dst.Set(0, d, src.Get(0, d)/mag)
 	}
 }
 
-// ApplyToVector returns A*x.
-func ApplyToVector(A Matrix, x Vector) Vector {
-	ins, outs := A.Shape()
-	if x.Dimension() != ins {
-		panic(fmt.Errorf("this matrix with %d inputs cannot be applied vector with %d dimensions", ins, x.Dimension()))
-	}
-	dst := NewArrayVector(outs)
-	ApplyToVectorInto(A, x, dst)
-	return dst
+// Normalize produces a vector in the same direction with unit length,
+// by dividing out the L2 norm.
+func Normalize(v Matrix) {
+	NormalizeInto(v, v)
 }

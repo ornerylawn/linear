@@ -34,20 +34,21 @@ func TestFindInputUpperTriangular(t *testing.T) {
 	A.Set(1, 2, 0)
 	A.Set(2, 2, 6)
 
-	b := NewArrayVector(3)
-	b.Set(0, 1)
-	b.Set(1, 2)
-	b.Set(2, 3)
+	b := NewArrayMatrix(1, 3)
+	b.Set(0, 0, 1)
+	b.Set(0, 1, 2)
+	b.Set(0, 2, 3)
 
 	x := FindInputUpperTriangular(A, b)
 
-	ExpectInt(3, x.Dimension(), t)
-	ExpectFloat(-1.0/4.0, x.Get(0), t)
-	ExpectFloat(-1.0/8.0, x.Get(1), t)
-	ExpectFloat(1.0/2.0, x.Get(2), t)
+	_, xdim := x.Shape()
+	ExpectInt(3, xdim, t)
+	ExpectFloat(-1.0/4.0, x.Get(0, 0), t)
+	ExpectFloat(-1.0/8.0, x.Get(0, 1), t)
+	ExpectFloat(1.0/2.0, x.Get(0, 2), t)
 }
 
-func TestHouseholderInto(t *testing.T) {
+func TestHouseholder(t *testing.T) {
 	A0 := NewArrayMatrix(3, 3)
 	A0.Set(0, 0, 12)
 	A0.Set(1, 0, -51)
@@ -59,11 +60,9 @@ func TestHouseholderInto(t *testing.T) {
 	A0.Set(1, 2, 24)
 	A0.Set(2, 2, -41)
 
-	H0 := NewArrayMatrix(3, 3)
-	HouseholderInto(
-		VectorFromColumn(Slice(A0, 0, 1, 0, 3)),
-		BasisVector(3, 0),
-		H0)
+	H0 := Householder(
+		Slice(A0, 0, 1, 0, 3),
+		BasisVector(3, 0))
 
 	h0Ins, h0Outs := H0.Shape()
 	ExpectInt(3, h0Ins, t)
@@ -78,7 +77,7 @@ func TestHouseholderInto(t *testing.T) {
 	ExpectFloat(0.06593406593406594, H0.Get(1, 2), t)
 	ExpectFloat(0.9560439560439561, H0.Get(2, 2), t)
 
-	A1 := ApplyToMatrix(H0, A0)
+	A1 := Apply(H0, A0)
 
 	a1Ins, a1Outs := A1.Shape()
 	ExpectInt(3, a1Ins, t)
@@ -93,26 +92,26 @@ func TestHouseholderInto(t *testing.T) {
 	ExpectFloat(19.384615384615387, A1.Get(1, 2), t)
 	ExpectFloat(-42.53846153846154, A1.Get(2, 2), t)
 
-	H1 := Identity(3)
-	HouseholderInto(
-		VectorFromColumn(Slice(A1, 1, 2, 1, 3)),
-		BasisVector(2, 0),
-		Slice(H1, 1, 3, 1, 3))
+	H1 := Householder(
+		Slice(A1, 1, 2, 1, 3),
+		BasisVector(2, 0))
 
 	h1Ins, h1Outs := H1.Shape()
-	ExpectInt(3, h1Ins, t)
-	ExpectInt(3, h1Outs, t)
-	ExpectFloat(1.0, H1.Get(0, 0), t)
-	ExpectFloat(0.0, H1.Get(1, 0), t)
-	ExpectFloat(0.0, H1.Get(2, 0), t)
-	ExpectFloat(0.0, H1.Get(0, 1), t)
-	ExpectFloat(-0.9938461538461536, H1.Get(1, 1), t)
-	ExpectFloat(-0.11076923076923079, H1.Get(2, 1), t)
-	ExpectFloat(0.0, H1.Get(0, 2), t)
-	ExpectFloat(-0.11076923076923079, H1.Get(1, 2), t)
-	ExpectFloat(0.9938461538461538, H1.Get(2, 2), t)
+	ExpectInt(2, h1Ins, t)
+	ExpectInt(2, h1Outs, t)
+	ExpectFloat(-0.9938461538461536, H1.Get(0, 0), t)
+	ExpectFloat(-0.11076923076923079, H1.Get(1, 0), t)
+	ExpectFloat(-0.11076923076923079, H1.Get(0, 1), t)
+	ExpectFloat(0.9938461538461538, H1.Get(1, 1), t)
 
-	A2 := ApplyToMatrix(H1, A1)
+	H1E := Identity(3)
+	for o := 0; o < 2; o++ {
+		for i := 0; i < 2; i++ {
+			H1E.Set(i+1, o+1, H1.Get(i, o))
+		}
+	}
+
+	A2 := Apply(H1E, A1)
 
 	a2ins, a2outs := A2.Shape()
 	ExpectInt(3, a2ins, t)
@@ -190,15 +189,16 @@ func TestOrdinaryLeastSquares(t *testing.T) {
 	X.Set(0, 1, 1)
 	X.Set(1, 1, 2)
 
-	y := NewArrayVector(2)
-	y.Set(0, 6)
-	y.Set(1, 0)
+	y := NewArrayMatrix(1, 2)
+	y.Set(0, 0, 6)
+	y.Set(0, 1, 0)
 
 	theta_hat := OrdinaryLeastSquares(X, y)
 
-	ExpectInt(2, theta_hat.Dimension(), t)
-	ExpectFloat(6, theta_hat.Get(0), t)
-	ExpectFloat(-3, theta_hat.Get(1), t)
+	_, dim := theta_hat.Shape()
+	ExpectInt(2, dim, t)
+	ExpectFloat(6, theta_hat.Get(0, 0), t)
+	ExpectFloat(-3, theta_hat.Get(0, 1), t)
 }
 
 func TestOrdinaryLeastSquaresNonSquare(t *testing.T) {
@@ -210,49 +210,25 @@ func TestOrdinaryLeastSquaresNonSquare(t *testing.T) {
 	X.Set(0, 2, -2)
 	X.Set(1, 2, 1)
 
-	y := NewArrayVector(3)
-	y.Set(0, 6)
-	y.Set(1, 0)
-	y.Set(2, -15)
+	y := NewArrayMatrix(1, 3)
+	y.Set(0, 0, 6)
+	y.Set(0, 1, 0)
+	y.Set(0, 2, -15)
 
 	theta_hat := OrdinaryLeastSquares(X, y)
 
-	ExpectInt(2, theta_hat.Dimension(), t)
-	ExpectFloat(6, theta_hat.Get(0), t)
-	ExpectFloat(-3, theta_hat.Get(1), t)
-}
-
-func BenchmarkFindInputUpperTriangularInto(b *testing.B) {
-	ins := 512
-	outs := 512
-	x := NewArrayVector(ins)
-	for i := 0; i < ins; i++ {
-		x.Set(i, rand.Float64())
-	}
-
-	A := NewArrayMatrix(ins, outs)
-	for o := 0; o < outs; o++ {
-		for i := 0; i < ins; i++ {
-			if i >= o {
-				A.Set(i, o, rand.Float64())
-			}
-		}
-	}
-
-	y := ApplyToVector(A, x)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		FindInputUpperTriangularInto(A, y, x)
-	}
+	_, dim := theta_hat.Shape()
+	ExpectInt(2, dim, t)
+	ExpectFloat(6, theta_hat.Get(0, 0), t)
+	ExpectFloat(-3, theta_hat.Get(0, 1), t)
 }
 
 func BenchmarkFindInputUpperTriangular(b *testing.B) {
 	ins := 512
 	outs := 512
-	x := NewArrayVector(ins)
+	x := NewArrayMatrix(0, ins)
 	for i := 0; i < ins; i++ {
-		x.Set(i, rand.Float64())
+		x.Set(0, i, rand.Float64())
 	}
 
 	A := NewArrayMatrix(ins, outs)
@@ -264,7 +240,7 @@ func BenchmarkFindInputUpperTriangular(b *testing.B) {
 		}
 	}
 
-	y := ApplyToVector(A, x)
+	y := Apply(A, x)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -272,7 +248,7 @@ func BenchmarkFindInputUpperTriangular(b *testing.B) {
 	}
 }
 
-func BenchmarkDecomposeQR_Basic(b *testing.B) {
+func BenchmarkDecomposeQR(b *testing.B) {
 	ins := 3
 	outs := 10
 	A := NewArrayMatrix(ins, outs)
@@ -285,23 +261,6 @@ func BenchmarkDecomposeQR_Basic(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		DecomposeQR_Basic(A)
-	}
-}
-
-func BenchmarkDecomposeQR_Slicing(b *testing.B) {
-	ins := 3
-	outs := 10
-	A := NewArrayMatrix(ins, outs)
-
-	for o := 0; o < outs; o++ {
-		for i := 0; i < ins; i++ {
-			A.Set(i, o, rand.Float64())
-		}
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		DecomposeQR_Slicing(A)
+		DecomposeQR(A)
 	}
 }
